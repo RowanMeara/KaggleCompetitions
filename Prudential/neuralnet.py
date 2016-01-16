@@ -17,22 +17,26 @@ class NeuralNet(object):
         return trans
 
     def forward_prop(self):
+        return 0
 
     def back_prop(selfs):
+        return 0
 
-    def compute_gradient(self, w, x, y):
+    @staticmethod
+    def compute_gradient (w, x, y):
         """
         Computes the gradient using ridge regression
         Args:
-            w : weight vector
+            w : dx1 weight vector
             x : nxd input vector
             y : nx1 label vector
         Out:
-            g : dx1 gradient of w
+            g : 1xd gradient of w
         """
         (n,d) = x.shape
-        for i in range(0,n):
-            g += 2*w*x  - 2*y + 2*w
+        g = np.zeros(d)
+        for i in range(0,d):
+            g[i] = (w*x-y)*np.transpose(x[i])
         g += 0.5*w
         return g
 
@@ -54,10 +58,9 @@ class NeuralNet(object):
         s = 0.05
         while count < max_iterations and error > max_error:
             count += 1
-
             w_old = w
+            # calculate new w
             w = w_old - s*self.compute_gradient(w_old,x,y)
-
             old_error = error
             t = (w - w_old)
             error = np.dot(t,t)
