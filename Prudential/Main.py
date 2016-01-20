@@ -2,7 +2,7 @@ import getdata
 import time
 import numpy as np
 import xgboost as xgb
-from sklearn import svm, preprocessing, cross_validation
+from sklearn import preprocessing
 
 
 class Prudential(object):
@@ -25,6 +25,8 @@ class Prudential(object):
         self.CONTINUOUS = ['Product_Info_4', 'Ins_Age', 'Ht', 'Wt', 'BMI', 'Employment_Info_1', 'Employment_Info_4',
                            'Employment_Info_6', 'Insurance_History_5', 'Family_Hist_2', 'Family_Hist_3',
                            'Family_Hist_4', 'Family_Hist_5']
+
+    @staticmethod
     def get_params():
         params = {}
         params["objective"] = "reg:linear"
@@ -80,20 +82,24 @@ if __name__ == "__main__":
     head.pop()
     (xTr, xTe) = model.encode_features(xTr, xTe, head)
 
-    # Cross Validation
+    # Put data in xgb format
     xgtrain = xgb.DMatrix(xTr, label=yTr)
+    xgtest = xgb.DMatrix(xTe)
     params = model.get_params()
-
+    eval_list = [(xTe, 'eval'), (xTr, 'train')]
     print("final training size", xTr.shape)
 
+    # Create model
     print('Creating model...')
     start = time.time()
-    clf = svm.LinearSVC()
-    clf.fit(xTr, yTr)
+    xgb_model = xgb.train(params, xgtrain, 700, eval_list)
     end = time.time()
-    print("Total Training Time:", (end-start))
 
+    print("Total Training Time:", (end-start))
+    xgb_model.save_model('0001.model')
+
+    # Predictions
     print('Predicting new values...')
-    preds = clf.predict(xTe)
+    preds = xgb_model.predict(xgtest)
     getdata.create_submission(ids, preds)
 
