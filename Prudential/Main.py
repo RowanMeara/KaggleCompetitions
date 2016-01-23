@@ -31,9 +31,9 @@ class Prudential(object):
         params = {}
         params["objective"] = "reg:linear"
         params["eta"] = 0.05
-        params["min_child_weight"] = 40
-        params["subsample"] = 0.60
-        params["colsample_bytree"] = 0.30
+        params["min_child_weight"] = 240
+        params["subsample"] = 1
+        params["colsample_bytree"] = 0.67
         params["silent"] = 1
         params["max_depth"] = 7
         plst = list(params.items())
@@ -72,6 +72,7 @@ class Prudential(object):
         xte = np.concatenate((xte[:, other], xte_cont, xte_cat), axis=1)
         return xtr, xte
 
+
 if __name__ == "__main__":
     print('Importing data...')
     (xTr, yTr, head) = getdata.import_training('train.csv')
@@ -83,16 +84,17 @@ if __name__ == "__main__":
     (xTr, xTe) = model.encode_features(xTr, xTe, head)
 
     # Put data in xgb format
-    xgtrain = xgb.DMatrix(xTr, label=yTr)
-    xgtest = xgb.DMatrix(xTe)
+    (num_samples, d) = xTr.shape
+    xg_train = xgb.DMatrix(xTr[0:(num_samples/4), :], yTr[0:num_samples/4])
+    xg_eval = xgb.DMatrix(xTr[(num_samples/4):num_samples, :], label=yTr[(num_samples/4):num_samples])
     params = model.get_params()
-    eval_list = [(xTe, 'eval'), (xTr, 'train')]
+    eval_list = [(xgtrain, 'train')]
     print("final training size", xTr.shape)
 
     # Create model
     print('Creating model...')
     start = time.time()
-    xgb_model = xgb.train(params, xgtrain, 700, eval_list)
+    xgb_model = xgb.train(params, xgtrain, 700)
     end = time.time()
 
     print("Total Training Time:", (end-start))
@@ -100,6 +102,13 @@ if __name__ == "__main__":
 
     # Predictions
     print('Predicting new values...')
+    xgtest = xgb.DMatrix(xTe)
     preds = xgb_model.predict(xgtest)
+    print(preds.shape)
+    for i in range(0, preds.size):
+        if preds[i] < 1:
+            preds[i] = 1
+        elif preds[i] < 8:
+            preds[i] = 8
     getdata.create_submission(ids, preds)
 
